@@ -1,0 +1,7 @@
+build/
+build.*/
+cmake-build-*/
+.vscode/
+compile_commands.json
+
+outdir/
