@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Update submodules
+      run: |
+        git submodule sync --recursive
+        git submodule update --init --recursive --force
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ ninja-build clang-format
+    
+    - name: Check formatting
+      run: |
+        cmake -S . -B build \
+          -DAPDFS_ENABLE_CLANG_FORMAT=ON \
+          -G Ninja
+        cmake --build build --target clang-format-check
+    
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DAPDFS_BUILD_TESTS=ON \
+          -DAPDFS_BUILD_TOOLS=ON \
+          -DAPDFS_BUILD_BENCHMARKS=OFF \
+          -DAPDFS_ENABLE_CLANG_FORMAT=ON \
+          -G Ninja
+    
+    - name: Build
+      run: cmake --build build -j$(nproc)
+    
+    - name: Test
+      run: ctest --test-dir build --output-on-failure
