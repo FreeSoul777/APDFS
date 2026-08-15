@@ -31,6 +31,8 @@ jobs:
           -DAPDFS_ENABLE_CLANG_FORMAT=ON \
           -G Ninja
         cmake --build build --target clang-format-check
+      env:
+        CLANG_FORMAT_STYLE: file
     
     - name: Configure CMake
       run: |

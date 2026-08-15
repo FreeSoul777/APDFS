@@ -185,7 +185,12 @@ int main(int argc, char* argv[])
         }
 
         uint32_t header[4];
-        std::fread(header, sizeof(uint32_t), 4, f);
+        size_t headerRead = std::fread(header, sizeof(uint32_t), 4, f);
+        if (headerRead != 4)
+        {
+            std::fclose(f);
+            continue;
+        }
 
         uint32_t cutSize;
         std::vector<uint32_t> edges;
@@ -193,7 +198,8 @@ int main(int argc, char* argv[])
         while (std::fread(&cutSize, sizeof(uint32_t), 1, f) == 1 && !quit)
         {
             edges.resize(cutSize);
-            if (std::fread(edges.data(), sizeof(uint32_t), cutSize, f) != cutSize)
+            size_t edgesRead = std::fread(edges.data(), sizeof(uint32_t), cutSize, f);
+            if (edgesRead != cutSize)
             {
                 break;
             }

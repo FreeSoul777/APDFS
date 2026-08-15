@@ -6,8 +6,7 @@
 namespace apdfs
 {
 
-BfsEngine::BfsEngine(size_t vertexCount, size_t edgeCount)
-    : mV1(vertexCount), mVT(vertexCount), mCutMask(edgeCount)
+BfsEngine::BfsEngine(size_t vertexCount, size_t edgeCount) : mV1(vertexCount), mVT(vertexCount), mCutMask(edgeCount)
 {
     mQueue.reserve(vertexCount);
 }

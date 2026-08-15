@@ -380,13 +380,11 @@ void ApdfsSolver::printProgressLine() const
         totalBytes += c->writer->totalBytesWritten();
     }
 
-    std::cerr << "\r"
-              << "Cuts: " << cuts << " | Dups: " << dups << " (" << dupRate << "%)"
-              << " | Stolen: " << stolen << " | Heap: " << mGlobalHeapSize.load()
-              << " | Time: " << static_cast<uint64_t>(elapsed) << "s"
-              << " | Speed: " << static_cast<uint64_t>(rate) << " cuts/s"
-              << " | Mem: " << (peakMem / 1024 / 1024) << " MB"
-              << " | File: " << (totalBytes / 1024 / 1024) << " MB";
+    std::cerr << "\r" << "Cuts: " << cuts << " | Dups: " << dups << " (" << dupRate << "%)" << " | Stolen: " << stolen
+              << " | Heap: " << mGlobalHeapSize.load() << " | Time: " << static_cast<uint64_t>(elapsed) << "s"
+              << " | Speed: " << static_cast<uint64_t>(rate) << " cuts/s" << " | Mem: " << (peakMem / 1024 / 1024)
+              << " MB" << " | File: " << (totalBytes / 1024 / 1024) << " MB";
+
     if (!eta.empty())
     {
         std::cerr << " | " << eta;

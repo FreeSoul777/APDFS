@@ -20,12 +20,11 @@ option(APDFS_ENABLE_CLANG_TIDY "Enable clang-tidy target" OFF)
 option(APDFS_ENABLE_CLANG_FORMAT "Enable clang-format targets" ON)
 
 include(cmake/CompileOptions.cmake)
+include(cmake/Dependencies.cmake)
+apdfs_fetch_dependencies()
 
 add_subdirectory(third_party)
 add_subdirectory(src)
-
-include(cmake/Dependencies.cmake)
-apdfs_fetch_dependencies()
 
 if(APDFS_ENABLE_CLANG_FORMAT)
     find_program(CLANG_FORMAT_EXE NAMES clang-format REQUIRED)
