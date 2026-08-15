@@ -205,6 +205,41 @@ cmake --build build -j$(nproc)
 
 APDFS реализует параллельный DFS по неявному графу минимальных разрезов. Подробное описание алгоритма, доказательства корректности и полноты: [docs/APDFS_SPECIFICATION_RU.md](docs/APDFS_SPECIFICATION_RU.md)
 
+## License
+
+APDFS is licensed under the Apache License, Version 2.0.
+
+Copyright 2026 FreeSoul777
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## Author
+
+**FreeSoul777** (https://github.com/FreeSoul777)
+
+## Citation
+
+Если вы используете APDFS в своих исследованиях, пожалуйста, укажите ссылку на него:
+
+```bibtex
+@software{apdfs2026,
+  author = {FreeSoul777},
+  title = {APDFS: Adaptive Parallel Depth-First Search for Enumerating All Minimal (S,T)-Cuts},
+  year = {2026},
+  url = {https://github.com/FreeSoul777/APDFS}
+}
+```
+
 ## Вклад в проект
 
 Перед созданием pull request убедитесь, что выполнены следующие шаги:
