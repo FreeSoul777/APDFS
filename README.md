@@ -246,13 +246,11 @@ Before creating a pull request, make sure you have completed the following steps
 
 1. **Code formatting**:
 ```bash
-cmake --build build --target clang-format
+cmake --build build --target clang-format-check
 ```
 
-2. **Static analysis** (if enabled):
+2. **Static analysis**:
 ```bash
-cmake -S . -B build -DAPDFS_ENABLE_CLANG_TIDY=ON
-cmake --build build -j$(nproc)
 cmake --build build --target clang-tidy-check
 ```
 

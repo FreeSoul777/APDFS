@@ -246,13 +246,11 @@ limitations under the License.
 
 1. **Форматирование кода**:
 ```bash
-cmake --build build --target clang-format
+cmake --build build --target clang-format-check
 ```
 
-2. **Статический анализ** (если включен):
+2. **Статический анализ**:
 ```bash
-cmake -S . -B build -DAPDFS_ENABLE_CLANG_TIDY=ON
-cmake --build build -j$(nproc)
 cmake --build build --target clang-tidy-check
 ```
 
