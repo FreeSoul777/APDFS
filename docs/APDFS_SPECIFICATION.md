@@ -44,7 +44,7 @@ duplicates per emitted cut.
 **Contributions.** (i) A self-contained proof that the cleanup operator of Section 4 returns the
 unique minimal cut contained in a multicut (Theorem 2, Corollary 1). (ii) A proof that the reachable
 vertex set is a strictly increasing potential on the search graph, hence that the graph is acyclic
-(Lemma 5, Corollary 2). (iii) A completeness proof by a monotone "working edges" invariant
+(Lemma 5, Corollary 2). (iii) A completeness proof by induction via a parent-existence lemma
 (Theorem 3) and a termination corollary (Corollary 3). (iv) A precise account of the one-sided-error
 nature of fingerprint deduplication (Section 7). (v) The sequential and parallel algorithms
 (Section 8), their cost (Section 9), and five extensions (Section 10).
@@ -70,6 +70,14 @@ Multiple sources $\{s_i\}$ and sinks $\{t_j\}$ are reduced to $S^\*$ and $T^\*$ 
 $(S^\*, s_i)$ and $(t_j, T^\*)$. Such edges cannot belong to a minimal $(S^\*, T^\*)$-cut except in
 the trivial case, and are filtered out in postprocessing if necessary. The graph $G$ may contain
 cycles; preliminary contraction of strongly connected components is not required.
+
+**Standing assumption (trimmed graph).** Unless stated otherwise we assume that every vertex and every
+edge of $G$ lies on at least one $S^\*$–$T^\*$ path; in particular, every out-neighbour of $S^\*$
+reaches $T^\*$ and every in-neighbour of $T^\*$ is reachable from $S^\*$. This is the standard
+reduction for cut enumeration (vertices and edges that lie on no $S^\*$–$T^\*$ path can never occur in
+a minimal cut). An implementation enforces it with a reachability precondition and reports the empty
+family when no $S^\*$–$T^\*$ path exists. Without this assumption the initial cut of Definition 9 is
+not minimal in general and the empty family needs separate handling.
 
 **Definition 1 (Path).** A directed path from $u$ to $v$ is a sequence of vertices
 $\pi = \langle u = x_0, x_1, \ldots, x_k = v \rangle$ such that $(x_i, x_{i+1}) \in E$ for every
@@ -181,6 +189,13 @@ the same minimal cut. $\square$
 
 **Output:** a minimal cut $P \subseteq Q$, or $\varnothing$ if $Q$ contains no minimal cut.
 
+**Boundary hypothesis.** Throughout this section we require that $Q$ is a *boundary* multicut, that is
+$Q = \delta^+(V_1)$: every edge $(u,w) \in Q$ has $u \in V_1$ and $w \notin V_1$. This is the only
+form in which Clean is ever invoked — by the construction of Section 8.2 the candidate
+$\Psi(P,e)$ is always a boundary multicut, because its edges are either cut edges of $P$ (whose heads
+lie outside $V_1(P) \subseteq V_1(Q)$) or outgoing edges of $v$ (whose heads lie outside $V_1(Q)$).
+For an arbitrary multicut the statements of this section can fail; see the remark after Corollary 1.
+
 **Algorithm Clean$(Q, V_1)$:**
 
 1. Construct $V_T$, the set of vertices from which $T^\*$ is reachable without using edges of $Q$:
@@ -192,7 +207,7 @@ the same minimal cut. $\square$
 
 ### 4.2. Correctness
 
-**Theorem 2.** Let $Q$ be a multicut, $V_1 = V_1(Q)$, $V_T$ be constructed as above, and
+**Theorem 2.** Let $Q$ be a boundary multicut, $V_1 = V_1(Q)$, $V_T$ be constructed as above, and
 $P = \text{Clean}(Q, V_1)$. Then:
 
 1. If $P = \varnothing$, then $Q$ contains no minimal cut.
@@ -202,8 +217,9 @@ $P = \text{Clean}(Q, V_1)$. Then:
 the edges of $R$ and removes an edge $e$ whenever $R \setminus \{e\}$ is still a multicut. It is
 well known that $\text{Reduce}(R)$ returns a minimal cut $P \subseteq R$ when $R$ is a multicut.
 
-**Lemma 3 (Characterization of redundant edges).** An edge $e' = (a, b) \in Q$ is redundant (i.e.
-$Q \setminus \{e'\}$ is a multicut) if and only if $b \notin V_T$.
+**Lemma 3 (Characterization of redundant edges).** Under the boundary hypothesis, an edge
+$e' = (a, b) \in Q$ is redundant (i.e. $Q \setminus \{e'\}$ is a multicut) if and only if
+$b \notin V_T$.
 
 **Proof of Lemma 3.**
 
@@ -227,10 +243,17 @@ $a \in V_1$, so this set coincides with the output of Clean. The elimination pro
 redundant edges in any order, leaves exactly the same set. Therefore
 $\text{Clean}(Q, V_1) = \text{Reduce}(Q)$, which is a minimal cut. $\square$
 
-**Corollary 1 (Uniqueness).** Any multicut $Q$ contains at most one minimal cut.
+**Corollary 1 (Uniqueness).** Any boundary multicut $Q$ contains at most one minimal cut.
 
 **Proof.** Clean deterministically computes a set $P$. By Theorem 2 every minimal cut
 $R \subseteq Q$ coincides with $P$. $\square$
+
+**Remark (necessity of the boundary hypothesis).** The hypothesis is essential. Take the path
+$S^\* \to a \to b \to T^\*$ and the multicut $Q = \{S^\*a, ab\}$. Here $V_1(Q) = \{S^\*\}$ and
+$V_T(Q) = \{b, T^\*\}$, so $\text{Clean}(Q) = \varnothing$, yet $Q$ contains *two* minimal cuts,
+$\{S^\*a\}$ and $\{ab\}$. The edge $ab$ has its tail outside $V_1(Q)$, so the characterisation of
+Lemma 3 does not apply to it. Clean is only guaranteed to recover the unique minimal cut for boundary
+multicuts, which is precisely the family produced by $\Psi$.
 
 ---
 
@@ -253,11 +276,12 @@ $(P, P') \in \mathcal{E}$ if and only if $\Phi(P, e) = P'$ for some $e \in P$.
 
 **Definition 9 (Root).** $P_0 = \Gamma^+(S^\*) = \{\, (S^\*, v) \in E \,\}$.
 
-**Lemma 4.** $P_0 \in \mathbb{D}$.
+**Lemma 4.** Under the standing assumption of Section 2.1, $P_0 \in \mathbb{D}$.
 
 **Proof.** $P_0$ is a multicut, since every path from $S^\*$ begins with an edge of $P_0$. Removing
 $(S^\*, v) \in P_0$ leaves the path $S^\* \to v \leadsto T^\*$ free of edges of
-$P_0 \setminus \{(S^\*, v)\}$, so $P_0$ is minimal by Theorem 1. $\square$
+$P_0 \setminus \{(S^\*, v)\}$; the suffix $v \leadsto T^\*$ exists by the standing assumption (every
+out-neighbour of $S^\*$ reaches $T^\*$). Hence $P_0$ is minimal by Theorem 1. $\square$
 
 ### 5.3. Monotonicity
 
@@ -282,43 +306,53 @@ strict increase of Lemma 5. $\square$
 
 ## 6. Completeness and termination
 
+**Lemma 6 (Parent existence).** For every minimal cut $P \in \mathbb{D}$ with
+$X = V_1(P) \neq \{S^\*\}$ there exist a minimal cut $P' \in \mathbb{D}$ with
+$V_1(P') \subsetneq X$ and an edge $e' \in P'$ such that $\Phi(P', e') = P$.
+
+**Proof.** Let $W = V \setminus X$, so $P = \delta^+(X)$. Since $X \neq \{S^\*\}$, there is a cut edge
+$(v, w) \in P$ whose tail satisfies $v \neq S^\*$: pick any $x \in X \setminus \{S^\*\}$, take a path
+$x \leadsto T^\*$ (it exists by the standing assumption), and let $(v, w)$ be the first edge of this
+path that leaves $X$; then $v \in X$, and $v \neq S^\*$ because no edge enters $S^\*$. Fix such $v$ and
+a witness edge $(v, w) \in P$. Since $v \in V_1(P)$, there is a path $S^\* \leadsto v$ in $G
+\setminus P$; let $(u, v)$ be its last edge, with $u \in X \setminus \{v\}$.
+
+Put $P' = \delta^+(X \setminus \{v\})$. We claim that $P'$ is a minimal cut with
+$V_1(P') = X \setminus \{v\}$. Indeed, every edge leaving $X \setminus \{v\}$ (into $\{v\} \cup W$)
+lies in $P'$, while every edge inside $X \setminus \{v\}$ is available, so the forward BFS from $S^\*$
+avoiding $P'$ reaches exactly $X \setminus \{v\}$; in particular $v$ is not reached, because every
+edge entering $v$ from $X \setminus \{v\}$ belongs to $P'$. For minimality, by Theorem 1 every edge of
+$P'$ has a free path. An edge $(x, w') \in P'$ with $w' \in W$ has the free path $S^\* \leadsto x$
+(inside $X \setminus \{v\}$), then $(x, w')$, then a path $w' \leadsto T^\*$ avoiding $P'$: since
+$(x, w') \in P$ and $P$ is minimal, the free path of $(x, w')$ provides a suffix $w' \leadsto T^\*$
+avoiding $P$; this suffix stays in $W$ (leaving $W$ would force a later edge of $\delta^+(X) \subseteq
+P$), so it also avoids $P'$. An edge $(u', v) \in P'$
+has the free path $S^\* \leadsto u'$ (inside $X \setminus \{v\}$), then $(u', v)$, then the witness
+edge $(v, w)$, then a path $w \leadsto T^\*$ inside $W$; here $(v, w) \notin P'$ because its tail
+$v \notin X \setminus \{v\}$. Hence $P' \in \mathbb{D}$.
+
+It remains to show $\Phi(P', e') = P$ for $e' = (u, v)$. By definition
+$\Psi(P', e') = (P' \setminus \{e'\}) \cup \Gamma^+(v)$. Since
+$P = \delta^+(X) = \{\, x \to w' : x \in X \setminus \{v\},\ w' \in W \,\} \cup \{\, v \to w' : w' \in W \,\}$,
+we may write $\Psi(P', e') = P \cup I$, where $I$ consists of the remaining edges with head in $X$:
+the edges $u' \to v$ other than $e'$ and the edges $v \to x'$ with $x' \in X$. The forward BFS avoiding
+$\Psi(P', e')$ reaches exactly $X$: it reaches all of $X \setminus \{v\}$ (internal edges are free),
+then $v$ through $e'$, and nothing further, because the edges $v \to x'$ and $v \to w'$ are forbidden.
+Thus $V_1(\Psi(P', e')) = X$. Now consider an arbitrary cut edge $(x, w') \in P$: by Theorem 1 it has a
+free path whose suffix $w' \leadsto T^\*$ avoids $P$; this suffix stays in $W$ (re-entering $X$ would
+force a later edge of $\delta^+(X) \subseteq P$), hence avoids $\Psi(P', e')$ as well, so
+$w' \in V_T(\Psi(P', e'))$. Every edge of $I$ has its head in $X = V_1(\Psi(P', e'))$, and therefore
+is removed by Clean. Consequently
+$\text{Clean}(\Psi(P', e'), X) = \{\, e \in \Psi(P', e') \mid \mathrm{tail}(e) \in X,\ \mathrm{head}(e)
+\in W \,\} = P$, that is $\Phi(P', e') = P$. $\square$
+
 **Theorem 3 (Completeness).** For any finite directed graph $G$, every minimal cut
 $P \in \mathbb{D}$ is reachable from $P_0$ in the search graph $\mathcal{G}$.
 
-**Proof.** Let $P \in \mathbb{D}$. By Theorem 1, for every $e \in P$ there is a free path $\pi_e$;
-fix one such path for each $e$. Consider the subgraph
-
-$$\mathcal{F} = \bigcup_{e \in P} \{\, \text{prefix of } \pi_e \text{ from } S^\* \text{ to } e \,\},$$
-
-whose edges are called *working edges*. We construct a sequence $P_0, P_1, \ldots, P_k = P$ in which
-each cut is obtained from the previous one by $\Phi$, and maintain the invariant: for every
-$e \in P$, the current cut $P_i$ contains exactly one working edge on $\pi_e$, and this edge is
-located no farther than $e$ from $S^\*$ by path length.
-
-*Base.* $P_0 = \Gamma^+(S^\*)$; the first edge of every $\pi_e$ belongs to $P_0$, so the invariant
-holds.
-
-*Step.* Suppose $P_i$ satisfies the invariant and $P_i \neq P$. Then $P_i \setminus P \neq
-\varnothing$; choose $e_{curr} \in P_i \setminus P$. This edge lies on some free path $\pi_e$ for
-$e \in P$ and is strictly before $e$; let $e_{next}$ be the next edge on $\pi_e$ after $e_{curr}$.
-Write $e_{curr} = (u, v)$ and apply $\Phi(P_i, e_{curr})$: then
-$\Psi(P_i, e_{curr}) = (P_i \setminus \{e_{curr}\}) \cup \Gamma^+(v)$, and $e_{next} \in \Gamma^+(v)$
-belongs to the candidate. The edge $e_{next}$ survives the cleanup, because the suffix of $\pi_e$
-from the end of $e_{next}$ to $T^\*$ contains neither an edge of $P_i \setminus \{e_{curr}\}$ (by the
-invariant, $\pi_e$ contains no other edge of $P_i$) nor an edge of $\Gamma^+(v)$ other than
-$e_{next}$ (the path is simple and does not return to $v$). Hence $e_{next} \in P_{i+1}$. For every
-other $e' \in P$ the corresponding working edge either remains in $P_{i+1}$ or is replaced by the
-next edge on $\pi_{e'}$; the latter happens only if the working edge was removed by the cleanup, in
-which case another edge of the cut must appear on $\pi_{e'}$ (otherwise $\pi_{e'}$ would be free of
-$P_{i+1}$, contradicting that $P_{i+1}$ is a multicut), and that edge lies farther along
-$\pi_{e'}$. The invariant is preserved.
-
-*Finiteness.* Every $\pi_e$ has finite length and each branching advances at least one working edge
-strictly forward, so the number of advances is bounded by
-$\sum_{e \in P} |\pi_e| \le |P| \cdot n$ and the construction terminates. When no advance is
-possible, the current cut contains exactly $e$ for every $e \in P$, hence $P_k = P$.
-
-Thus $P$ is reachable from $P_0$ in $\mathcal{G}$. $\square$
+**Proof.** Induction on $|V_1(P)|$. If $|V_1(P)| = 1$, then $V_1(P) = \{S^\*\}$, hence
+$P = \delta^+(\{S^\*\}) = \Gamma^+(S^\*) = P_0$ by Lemma 1.4. Otherwise Lemma 6 yields a minimal cut
+$P'$ with $V_1(P') \subsetneq V_1(P)$ and $\Phi(P', e') = P$ for some $e' \in P'$. By the induction
+hypothesis $P'$ is reachable from $P_0$, and the transition $\Phi(P', e')$ reaches $P$. $\square$
 
 **Corollary 3 (Termination).** APDFS, traversing $\mathcal{G}$ from $P_0$ with memoisation,
 enumerates all minimal cuts and terminates on every finite directed graph.
@@ -350,6 +384,15 @@ generated and never changes. The failure mode is one-sided: a collision can only
 to *skip* a genuine cut and can never emit a cut that is not minimal. Since a run emits at most
 $|\mathbb{D}|$ cuts, the probability of missing one is at most
 $\binom{|\mathbb{D}|}{2} 2^{-128} < |\mathbb{D}|^2 2^{-129}$.
+
+**Remark (determinism and linearity).** The bound above models the labels $h[e]$ as independent
+uniform random values. The implementation instead draws them from a fixed-seed Xoroshiro128 generator,
+so the guarantee is heuristic rather than adversarial: it holds for the graphs the generator produces
+but an adversary who knows the seed could in principle construct a collision. In addition, the
+fingerprint is *linear* over $\mathrm{GF}(2)^{128}$: for $P_1 \neq P_2$ a collision means exactly that
+the nonempty symmetric difference $P_1 \triangle P_2$ has labels summing to zero under $\oplus$. Both
+observations follow from the choice of $\oplus$ and of the label source, and neither changes the
+one-sided nature of the failure mode.
 
 ---
 
@@ -407,9 +450,10 @@ revisited. A frame is skipped if its fingerprint is already present.
 
 **Theorem 4 (Time per frame).** Processing a frame requires $O(|P| \cdot (n + m))$ operations.
 
-**Proof.** Recovering $V_1$ by a forward BFS costs $O(n+m)$. For each of the $|P|$ edges the
-incremental BFS costs $O(n+m)$ and the cleanup costs one reverse BFS, $O(n+m)$. The total is
-$O(|P| \cdot (n+m))$. $\square$
+**Proof.** Recovering $V_1$ by a forward BFS costs $O(n+m)$. The branching loop runs once per
+*distinct head* of $P$ (Proposition 1); with $\hbar \le |P|$ distinct heads, the incremental BFS costs
+$O(\hbar\,(n+m))$ and the cleanups cost one reverse BFS each, $O(\hbar\,(n+m))$. The total is
+$O(\hbar \cdot (n+m)) = O(|P| \cdot (n+m))$. $\square$
 
 **Corollary 4 (Total time).** $O(|\mathbb{D}| \cdot \bar p \cdot (n+m) / T)$, where $\bar p$ is the
 average cut size and $T$ the number of threads. Parallel efficiency additionally depends on
@@ -488,12 +532,12 @@ synchronisation.
 inserted and some path $S^\* \leadsto T^\*$ in the new graph contains $e^\*$ and no other edge of
 $P$, or if $e^\*$ is deleted and $e^\* \in P$.
 
-**Lemma 6.** If $P \in \mathbb{D}(G)$ is not affected by $e^\*$, then $P \in \mathbb{D}(G')$.
+**Lemma 7.** If $P \in \mathbb{D}(G)$ is not affected by $e^\*$, then $P \in \mathbb{D}(G')$.
 
 **Algorithm.**
 
 1. Identify the affected cuts $Z \subseteq \mathbb{D}(G)$.
-2. $\mathbb{D}_{keep} \leftarrow \mathbb{D}(G) \setminus Z$; these cuts are preserved by Lemma 6.
+2. $\mathbb{D}_{keep} \leftarrow \mathbb{D}(G) \setminus Z$; these cuts are preserved by Lemma 7.
 3. For every $P \in Z$, add $P$ to $\mathbb{D}_{keep}$ if it is still a minimal cut in $G'$.
 4. Run APDFS on $G'$ with the seen set initialised to $\mathbb{D}_{keep}$ and with the cuts of $Z$
    as additional roots.
@@ -505,7 +549,7 @@ $P$, or if $e^\*$ is deleted and $e^\* \in P$.
 **Definition 12 (Neighbourhood).** Cuts $P, P' \in \mathbb{D}$ are neighbours if
 $\Phi(P, e) = P'$ for some $e \in P$ or $\Phi(P', e') = P$ for some $e' \in P'$.
 
-**Lemma 7.** The neighbourhood relation is symmetric and connected on $\mathbb{D}$.
+**Lemma 8.** The neighbourhood relation is symmetric and connected on $\mathbb{D}$.
 
 **Sampler.**
 
