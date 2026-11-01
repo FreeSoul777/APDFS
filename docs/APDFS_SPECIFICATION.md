@@ -71,6 +71,14 @@ $(S^\*, s_i)$ and $(t_j, T^\*)$. Such edges cannot belong to a minimal $(S^\*, T
 the trivial case, and are filtered out in postprocessing if necessary. The graph $G$ may contain
 cycles; preliminary contraction of strongly connected components is not required.
 
+**Standing assumption (trimmed graph).** Unless stated otherwise we assume that every vertex and every
+edge of $G$ lies on at least one $S^\*$–$T^\*$ path; in particular, every out-neighbour of $S^\*$
+reaches $T^\*$ and every in-neighbour of $T^\*$ is reachable from $S^\*$. This is the standard
+reduction for cut enumeration (vertices and edges that lie on no $S^\*$–$T^\*$ path can never occur in
+a minimal cut). An implementation enforces it with a reachability precondition and reports the empty
+family when no $S^\*$–$T^\*$ path exists. Without this assumption the initial cut of Definition 9 is
+not minimal in general and the empty family needs separate handling.
+
 **Definition 1 (Path).** A directed path from $u$ to $v$ is a sequence of vertices
 $\pi = \langle u = x_0, x_1, \ldots, x_k = v \rangle$ such that $(x_i, x_{i+1}) \in E$ for every
 $i \in \{0, \ldots, k-1\}$ and all $x_i$ are pairwise distinct. The number $k$ is the length of the
@@ -181,6 +189,13 @@ the same minimal cut. $\square$
 
 **Output:** a minimal cut $P \subseteq Q$, or $\varnothing$ if $Q$ contains no minimal cut.
 
+**Boundary hypothesis.** Throughout this section we require that $Q$ is a *boundary* multicut, that is
+$Q = \delta^+(V_1)$: every edge $(u,w) \in Q$ has $u \in V_1$ and $w \notin V_1$. This is the only
+form in which Clean is ever invoked — by the construction of Section 8.2 the candidate
+$\Psi(P,e)$ is always a boundary multicut, because its edges are either cut edges of $P$ (whose heads
+lie outside $V_1(P) \subseteq V_1(Q)$) or outgoing edges of $v$ (whose heads lie outside $V_1(Q)$).
+For an arbitrary multicut the statements of this section can fail; see the remark after Corollary 1.
+
 **Algorithm Clean$(Q, V_1)$:**
 
 1. Construct $V_T$, the set of vertices from which $T^\*$ is reachable without using edges of $Q$:
@@ -192,7 +207,7 @@ the same minimal cut. $\square$
 
 ### 4.2. Correctness
 
-**Theorem 2.** Let $Q$ be a multicut, $V_1 = V_1(Q)$, $V_T$ be constructed as above, and
+**Theorem 2.** Let $Q$ be a boundary multicut, $V_1 = V_1(Q)$, $V_T$ be constructed as above, and
 $P = \text{Clean}(Q, V_1)$. Then:
 
 1. If $P = \varnothing$, then $Q$ contains no minimal cut.
@@ -202,8 +217,9 @@ $P = \text{Clean}(Q, V_1)$. Then:
 the edges of $R$ and removes an edge $e$ whenever $R \setminus \{e\}$ is still a multicut. It is
 well known that $\text{Reduce}(R)$ returns a minimal cut $P \subseteq R$ when $R$ is a multicut.
 
-**Lemma 3 (Characterization of redundant edges).** An edge $e' = (a, b) \in Q$ is redundant (i.e.
-$Q \setminus \{e'\}$ is a multicut) if and only if $b \notin V_T$.
+**Lemma 3 (Characterization of redundant edges).** Under the boundary hypothesis, an edge
+$e' = (a, b) \in Q$ is redundant (i.e. $Q \setminus \{e'\}$ is a multicut) if and only if
+$b \notin V_T$.
 
 **Proof of Lemma 3.**
 
@@ -227,10 +243,17 @@ $a \in V_1$, so this set coincides with the output of Clean. The elimination pro
 redundant edges in any order, leaves exactly the same set. Therefore
 $\text{Clean}(Q, V_1) = \text{Reduce}(Q)$, which is a minimal cut. $\square$
 
-**Corollary 1 (Uniqueness).** Any multicut $Q$ contains at most one minimal cut.
+**Corollary 1 (Uniqueness).** Any boundary multicut $Q$ contains at most one minimal cut.
 
 **Proof.** Clean deterministically computes a set $P$. By Theorem 2 every minimal cut
 $R \subseteq Q$ coincides with $P$. $\square$
+
+**Remark (necessity of the boundary hypothesis).** The hypothesis is essential. Take the path
+$S^\* \to a \to b \to T^\*$ and the multicut $Q = \{S^\*a, ab\}$. Here $V_1(Q) = \{S^\*\}$ and
+$V_T(Q) = \{b, T^\*\}$, so $\text{Clean}(Q) = \varnothing$, yet $Q$ contains *two* minimal cuts,
+$\{S^\*a\}$ and $\{ab\}$. The edge $ab$ has its tail outside $V_1(Q)$, so the characterisation of
+Lemma 3 does not apply to it. Clean is only guaranteed to recover the unique minimal cut for boundary
+multicuts, which is precisely the family produced by $\Psi$.
 
 ---
 
@@ -253,11 +276,12 @@ $(P, P') \in \mathcal{E}$ if and only if $\Phi(P, e) = P'$ for some $e \in P$.
 
 **Definition 9 (Root).** $P_0 = \Gamma^+(S^\*) = \{\, (S^\*, v) \in E \,\}$.
 
-**Lemma 4.** $P_0 \in \mathbb{D}$.
+**Lemma 4.** Under the standing assumption of Section 2.1, $P_0 \in \mathbb{D}$.
 
 **Proof.** $P_0$ is a multicut, since every path from $S^\*$ begins with an edge of $P_0$. Removing
 $(S^\*, v) \in P_0$ leaves the path $S^\* \to v \leadsto T^\*$ free of edges of
-$P_0 \setminus \{(S^\*, v)\}$, so $P_0$ is minimal by Theorem 1. $\square$
+$P_0 \setminus \{(S^\*, v)\}$; the suffix $v \leadsto T^\*$ exists by the standing assumption (every
+out-neighbour of $S^\*$ reaches $T^\*$). Hence $P_0$ is minimal by Theorem 1. $\square$
 
 ### 5.3. Monotonicity
 
@@ -320,6 +344,16 @@ possible, the current cut contains exactly $e$ for every $e \in P$, hence $P_k =
 
 Thus $P$ is reachable from $P_0$ in $\mathcal{G}$. $\square$
 
+**Remark (status of the proof).** The argument above is an outline: the invariant as stated bounds only
+the *working* edges (one per chosen free path $\pi_e$) and does not by itself justify the step that
+picks $e_{\mathrm{curr}} \in P_i \setminus P$ and asserts that it lies on some $\pi_e$ before $e$, nor
+that the intersection $P_i \cap \pi_e$ remains a single edge after a cleanup. A fully rigorous version
+should additionally prove that every edge of a reachable cut lies on one of the chosen free paths
+(equivalently $P_i \subseteq \bigcup_e \pi_e$) and that the working edge advances monotonically.
+Completeness is independently corroborated in practice by an exhaustive oracle over small graphs
+(Section 8 of the accompanying implementation notes); we state the theorem but flag the proof as
+requiring completion.
+
 **Corollary 3 (Termination).** APDFS, traversing $\mathcal{G}$ from $P_0$ with memoisation,
 enumerates all minimal cuts and terminates on every finite directed graph.
 
@@ -350,6 +384,15 @@ generated and never changes. The failure mode is one-sided: a collision can only
 to *skip* a genuine cut and can never emit a cut that is not minimal. Since a run emits at most
 $|\mathbb{D}|$ cuts, the probability of missing one is at most
 $\binom{|\mathbb{D}|}{2} 2^{-128} < |\mathbb{D}|^2 2^{-129}$.
+
+**Remark (determinism and linearity).** The bound above models the labels $h[e]$ as independent
+uniform random values. The implementation instead draws them from a fixed-seed Xoroshiro128 generator,
+so the guarantee is heuristic rather than adversarial: it holds for the graphs the generator produces
+but an adversary who knows the seed could in principle construct a collision. In addition, the
+fingerprint is *linear* over $\mathrm{GF}(2)^{128}$: for $P_1 \neq P_2$ a collision means exactly that
+the nonempty symmetric difference $P_1 \triangle P_2$ has labels summing to zero under $\oplus$. Both
+observations follow from the choice of $\oplus$ and of the label source, and neither changes the
+one-sided nature of the failure mode.
 
 ---
 
@@ -407,9 +450,10 @@ revisited. A frame is skipped if its fingerprint is already present.
 
 **Theorem 4 (Time per frame).** Processing a frame requires $O(|P| \cdot (n + m))$ operations.
 
-**Proof.** Recovering $V_1$ by a forward BFS costs $O(n+m)$. For each of the $|P|$ edges the
-incremental BFS costs $O(n+m)$ and the cleanup costs one reverse BFS, $O(n+m)$. The total is
-$O(|P| \cdot (n+m))$. $\square$
+**Proof.** Recovering $V_1$ by a forward BFS costs $O(n+m)$. The branching loop runs once per
+*distinct head* of $P$ (Proposition 1); with $\hbar \le |P|$ distinct heads, the incremental BFS costs
+$O(\hbar\,(n+m))$ and the cleanups cost one reverse BFS each, $O(\hbar\,(n+m))$. The total is
+$O(\hbar \cdot (n+m)) = O(|P| \cdot (n+m))$. $\square$
 
 **Corollary 4 (Total time).** $O(|\mathbb{D}| \cdot \bar p \cdot (n+m) / T)$, where $\bar p$ is the
 average cut size and $T$ the number of threads. Parallel efficiency additionally depends on
