@@ -152,6 +152,39 @@ cmake --build build -j$(nproc)
 - **Chain1T/Chain4T** — chains of diamonds (K=10, 12, 15, 20) with 1 and 4 threads
 - **Random1T/Random4T** — random graph (20 vertices, 60 edges) with 1 and 4 threads
 
+## Measured performance
+
+Reference numbers on one machine, to give a sense of throughput and memory. These are *not*
+reproducible guarantees (they depend on the CPU, the graph, and the operating system); treat them as
+an order-of-magnitude guide and re-measure before citing.
+
+**Machine:** AMD Ryzen AI 9 365 (10 cores / 20 threads), 26 GiB RAM, GCC 15.2, `Release` (`-O3`), Ninja.
+
+**Workload:** `graphgen random 300 1200 0.2 0.2` (300 vertices, 1200 edges), `S*=0`, `T*=299`,
+`--max-cuts=1000000` (≈210–227 MB of `.bin` output).
+
+| Threads | Throughput | Speedup | Peak RSS |
+|--------:|-----------:|--------:|---------:|
+| 1  | 106 142 cuts/s | 1.00× |  54 MB |
+| 4  | 333 145 cuts/s | 3.14× |  94 MB |
+| 8  | 496 732 cuts/s | 4.68× | 148 MB |
+| 16 | 632 386 cuts/s | 5.96× | 254 MB |
+
+Scaling flattens past 8 threads (the global `SeenTable` and memory bandwidth become the bottleneck).
+
+**Memory is linear in the number of emitted cuts** (the `SeenTable` is `Θ(|𝔻|)`), not in the graph:
+
+| Emitted cuts (4 threads) | Peak RSS |
+|-------------------------:|---------:|
+| 100 000  |  60 MB |
+| 250 000  |  66 MB |
+| 500 000  |  78 MB |
+| 1 000 000 |  93 MB |
+
+That is ≈39 bytes per cut (a 16-byte fingerprint slot at 0.5 load factor plus overhead). On tiny
+graphs (≤ 100 cuts) parallel runs are *slower* than single-threaded ones because thread startup
+(≈1 ms) dominates the useful work — see the `Chain*T` benchmarks.
+
 ## Tools
 
 ### Graph generator
