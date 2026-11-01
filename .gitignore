@@ -1,0 +1,10 @@
+build/
+build.*/
+cmake-build-*/
+.vscode/
+compile_commands.json
+
+outdir/
+help/
+.dsh-code-index/
+.project-brain/
