@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -11,9 +12,52 @@
 
 using namespace apdfs;
 
-static void generateChain(size_t k, const std::string& outputFile)
+namespace
 {
-    std::ofstream f(outputFile);
+
+bool openOutput(const std::string& outputFile, std::ofstream& f)
+{
+    const std::filesystem::path path(outputFile);
+    if (path.has_parent_path())
+    {
+        std::error_code ec;
+        std::filesystem::create_directories(path.parent_path(), ec);
+        if (ec)
+        {
+            std::cerr << "error: cannot create directory " << path.parent_path() << ": " << ec.message() << "\n";
+            return false;
+        }
+    }
+
+    f.open(path);
+    if (!f.is_open())
+    {
+        std::cerr << "error: cannot open output file " << outputFile << "\n";
+        return false;
+    }
+    return true;
+}
+
+bool finishOutput(std::ofstream& f, const std::string& outputFile)
+{
+    f.flush();
+    if (!f.good())
+    {
+        std::cerr << "error: failed to write output file " << outputFile << "\n";
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
+static bool generateChain(size_t k, const std::string& outputFile)
+{
+    std::ofstream f;
+    if (!openOutput(outputFile, f))
+    {
+        return false;
+    }
 
     size_t vertexCount = 3 * k + 1;
     size_t edgeCount = 4 * k;
@@ -37,7 +81,13 @@ static void generateChain(size_t k, const std::string& outputFile)
     }
 
     f.close();
+    if (!finishOutput(f, outputFile))
+    {
+        return false;
+    }
+
     std::cout << "Generated " << outputFile << ": " << vertexCount << " vertices, " << edgeCount << " edges\n";
+    return true;
 }
 
 static bool generateRandom(size_t numVertices, size_t numEdges, double sideBranchRate, double cycleRate,
@@ -109,7 +159,12 @@ static bool generateRandom(size_t numVertices, size_t numEdges, double sideBranc
     std::mt19937 mt(static_cast<unsigned>(rng()));
     std::shuffle(edges.begin() + static_cast<long>(mainPathEdges), edges.end(), mt);
 
-    std::ofstream f(outputFile);
+    std::ofstream f;
+    if (!openOutput(outputFile, f))
+    {
+        return false;
+    }
+
     f << "# Random graph: " << numVertices << " vertices, " << numEdges << " edges\n";
     f << "# Side branch rate: " << (sideBranchRate * 100) << "%\n";
     f << "# Cycle rate: " << (cycleRate * 100) << "%\n";
@@ -121,6 +176,11 @@ static bool generateRandom(size_t numVertices, size_t numEdges, double sideBranc
     }
 
     f.close();
+    if (!finishOutput(f, outputFile))
+    {
+        return false;
+    }
+
     std::cout << "Generated " << outputFile << ": " << numVertices << " vertices, " << numEdges << " edges\n";
     return true;
 }
@@ -152,7 +212,10 @@ int main(int argc, char* argv[])
         {
             outputFile = argv[3];
         }
-        generateChain(k, outputFile);
+        if (!generateChain(k, outputFile))
+        {
+            return 1;
+        }
     }
     else if (mode == "random")
     {
