@@ -1,7 +1,7 @@
 #!/bin/bash
 BUILD_DIR="${1:-build}"
 GRAPHGEN="${BUILD_DIR}/tools/graphgen"
-SOLVER="${BUILD_DIR}/src/app/apdfs_cli"
+SOLVER="${BUILD_DIR}/src/apdfs_cli"
 
 if [ ! -x "$GRAPHGEN" ] || [ ! -x "$SOLVER" ]; then
     echo "Build project: cd $BUILD_DIR && cmake --build . -j\$(nproc)"
@@ -14,6 +14,8 @@ printf "%-4s %-10s %-10s %-12s %-10s %-10s\n" \
     "K" "Vertices" "Edges" "Cuts" "Time(s)" "Memory(MB)"
 printf "%-4s %-10s %-10s %-12s %-10s %-10s\n" \
     "---" "--------" "-----" "-----------" "-------" "----------"
+
+mkdir -p outdir
 
 for K in 1 2 3 4 5 6 7 8 9 10; do
     GRAPH_FILE="outdir/chain_${K}.txt"
@@ -38,5 +40,5 @@ for K in 1 2 3 4 5 6 7 8 9 10; do
 done
 
 echo ""
-echo "Formula: C(K) = 4*K"
-echo "K=1: 4, K=2: 8, K=3: 12, K=4: 16, K=5: 20, ..."
+echo "Formula: C(K) = 4*K + 2  (4 per diamond plus the 2 dummy edges S*->source and sink->T*)"
+echo "K=1: 6, K=2: 10, K=3: 14, K=4: 18, K=5: 22, ..."
